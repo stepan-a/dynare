@@ -180,7 +180,7 @@ class ParsingDriver;
 %type <string_val> non_negative_number signed_number signed_integer date_str
 %type <string_val> filename symbol vec_of_vec_value vec_value_list date_expr
 %type <string_val> vec_value_1 vec_value signed_inf signed_number_w_inf
-%type <string_val> range vec_value_w_inf vec_value_1_w_inf
+%type <string_val> range vec_value_w_inf vec_value_1_w_inf vec_str vec_str_1
 %type <string_val> integer_range signed_integer_range sub_sampling_options list_sub_sampling_option
 %type <string_pair_val> named_var
 %type <symbol_type_val> change_type_arg
@@ -3302,6 +3302,30 @@ vec_value_1_w_inf : '[' signed_number_w_inf
                   ;
 
 vec_value_w_inf : vec_value_1_w_inf ']' { $1->append("]"); $$ = $1; };
+
+vec_str_1 : '[' QUOTED_STRING { $2->insert(0,"['"); $2->append("'"); $$ = $2; }
+            | '[' COMMA QUOTED_STRING { $3->insert(0,"['"); $3->append("'"); $$ = $3; }
+            | vec_str_1 QUOTED_STRING
+              {
+                $1->append(" '");
+                $1->append(*$2);
+                $1->append("'");
+                delete $2;
+                $$ = $1;
+              }
+            | vec_str_1 COMMA QUOTED_STRING
+              {
+                $1->append(" '");
+                $1->append(*$3);
+                $1->append("'");
+                delete $3;
+                $$ = $1;
+              }
+            ;
+
+vec_str : vec_str_1 ']' { $1->append("]"); $$ = $1; }
+        | vec_str_1 COMMA ']' { $1->append("]"); $$ = $1; }
+        ;
 
 symbol : NAME
        | ALPHA
