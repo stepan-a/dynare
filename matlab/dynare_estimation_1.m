@@ -31,6 +31,9 @@ function dynare_estimation_1(var_list_,dname)
 
 global M_ options_ oo_ estim_params_ bayestopt_ dataset_ dataset_info
 
+%store qz_criterium
+qz_criterium_old=options_.qz_criterium;
+
 % Set particle filter flag.
 if options_.order > 1
     if options_.particle.status && options_.order==2  
@@ -163,6 +166,8 @@ if isequal(options_.mode_compute,0) && isempty(options_.mode_file) && options_.m
         [atT,innov,measurement_error,updated_variables,ys,trend_coeff,aK,T,R,P,PK,decomp,Trend] = DsgeSmoother(xparam1,gend,transpose(data),data_index,missing_value);
         [oo_]=store_smoother_results(M_,oo_,options_,bayestopt_,dataset_,dataset_info,atT,innov,measurement_error,updated_variables,ys,trend_coeff,aK,P,PK,decomp,Trend);
     end
+    %reset qz_criterium
+    options_.qz_criterium=qz_criterium_old;
     return
 end
 
@@ -421,6 +426,8 @@ if (any(bayestopt_.pshape  >0 ) && options_.mh_replic) || ...
     %% Here I discard first mh_drop percent of the draws:
     CutSample(M_, options_, estim_params_);
     if options_.mh_posterior_mode_estimation
+        %reset qz_criterium
+        options_.qz_criterium=qz_criterium_old;
         return
     else
         if ~options_.nodiagnostic && options_.mh_replic>0
@@ -467,6 +474,8 @@ if (any(bayestopt_.pshape  >0 ) && options_.mh_replic) || ...
 end
 
 if options_.particle.status
+    %reset qz_criterium
+    options_.qz_criterium=qz_criterium_old;
     return
 end
 
@@ -713,3 +722,5 @@ if np > 0
     save([M_.fname '_pindx.mat'] ,'pindx');
 end
 
+%reset qz_criterium
+options_.qz_criterium=qz_criterium_old;
