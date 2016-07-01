@@ -22,7 +22,7 @@ end
 %------------------------------------------------------------------------------
 
 % Return, with endogenous penalty, if some parameters are smaller than the lower bound of the prior domain.
-if ~isequal(DynareOptions.mode_compute,1) && any(xparam1<BoundsInfo.lb)
+if ~isequal(DynareOptions.mode_compute, 1) && any(xparam1<BoundsInfo.lb)
     k = find(xparam1<BoundsInfo.lb);
     fval = Inf;
     exit_flag = 0;
@@ -32,7 +32,7 @@ if ~isequal(DynareOptions.mode_compute,1) && any(xparam1<BoundsInfo.lb)
 end
 
 % Return, with endogenous penalty, if some parameters are greater than the upper bound of the prior domain.
-if ~isequal(DynareOptions.mode_compute,1) && any(xparam1>BoundsInfo.ub)
+if ~isequal(DynareOptions.mode_compute, 1) && any(xparam1>BoundsInfo.ub)
     k = find(xparam1>BoundsInfo.ub);
     fval = Inf;
     exit_flag = 0;
@@ -42,14 +42,14 @@ if ~isequal(DynareOptions.mode_compute,1) && any(xparam1>BoundsInfo.ub)
 end
 
 % Get the diagonal elements of the covariance matrices for the structural innovations (Q) and the measurement error (H).
-Model = set_all_parameters(xparam1,EstimatedParameters,Model);
+Model = set_all_parameters(xparam1, EstimatedParameters, Model);
 
 Q = Model.Sigma_e;
 H = Model.H;
 
 % Test if Q is positive definite.
 if ~issquare(Q) || EstimatedParameters.ncx || isfield(EstimatedParameters,'calibrated_covariances')
-    [Q_is_positive_definite, penalty] = ispd(Q(EstimatedParameters.Sigma_e_entries_to_check_for_positive_definiteness,EstimatedParameters.Sigma_e_entries_to_check_for_positive_definiteness));
+    [Q_is_positive_definite, penalty] = ispd(Q(EstimatedParameters.Sigma_e_entries_to_check_for_positive_definiteness, EstimatedParameters.Sigma_e_entries_to_check_for_positive_definiteness));
     if ~Q_is_positive_definite
         fval = Inf;
         exit_flag = 0;
@@ -57,7 +57,7 @@ if ~issquare(Q) || EstimatedParameters.ncx || isfield(EstimatedParameters,'calib
         info(4) = penalty;
         return
     end
-    if isfield(EstimatedParameters,'calibrated_covariances')
+    if isfield(EstimatedParameters, 'calibrated_covariances')
         correct_flag=check_consistency_covariances(Q);
         if ~correct_flag
             penalty = sum(Q(EstimatedParameters.calibrated_covariances.position).^2);
@@ -89,8 +89,8 @@ end
 % Return, with endogenous penalty when possible, if dynare_resolve issues an error code (defined in resol).
 if info(1)
     if info(1) == 3 || info(1) == 4 || info(1) == 5 || info(1)==6 ||info(1) == 19 ...
-            info(1) == 20 || info(1) == 21 || info(1) == 23 || info(1) == 26 || ...
-            info(1) == 81 || info(1) == 84 ||  info(1) == 85
+                info(1) == 20 || info(1) == 21 || info(1) == 23 || info(1) == 26 || ...
+                info(1) == 81 || info(1) == 84 ||  info(1) == 85
         %meaningful second entry of output that can be used
         fval = Inf;
         info(4) = info(2);
@@ -118,7 +118,7 @@ BayesInfo.mf = BayesInfo.mf1;
 
 % Define the constant vector of the measurement equation.
 if DynareOptions.noconstant
-    constant = zeros(DynareDataset.vobs,1);
+    constant = zeros(DynareDataset.vobs, 1);
 else
     if DynareOptions.loglinear
         constant = log(SteadyState(BayesInfo.mfys));
@@ -129,11 +129,11 @@ end
 
 % Define the deterministic linear trend of the measurement equation.
 if BayesInfo.with_trend
-    [trend_addition, trend_coeff]=compute_trend_coefficients(Model,DynareOptions,DynareDataset.vobs,DynareDataset.nobs);
-    trend = repmat(constant,1,DynareDataset.nobs)+trend_addition;
+    [trend_addition, trend_coeff]=compute_trend_coefficients(Model, DynareOptions, DynareDataset.vobs, DynareDataset.nobs);
+    trend = repmat(constant, 1, DynareDataset.nobs)+trend_addition;
 else
-   trend_coeff = zeros(DynareDataset.vobs,1);
-   trend = repmat(constant,1,DynareDataset.nobs);
+    trend_coeff = zeros(DynareDataset.vobs, 1);
+    trend = repmat(constant, 1, DynareDataset.nobs);
 end
 
 
@@ -142,16 +142,13 @@ if DatasetInfo.missing.state
     error('Option conditional_likelihood is not compatible with missing observations.')
 end
 
-% Get the selection matrix
+% Get the selection matrix (vector of row indices for T and R)
 Z = BayesInfo.mf;
-
-% Get needed informations for kalman filter routines.
-start = DynareOptions.presample+1;
 
 % Get the number of observed variables.
 pp = DynareDataset.vobs;
 
-% Get the number of variables in the state equations.
+% Get the number of variables in the state equations (state variables plus observed variables).
 mm = size(T, 1);
 
 % Get the number of innovations.
@@ -165,7 +162,7 @@ end
 % Remove the trend.
 Y = transpose(DynareDataset.data)-trend;
 
-% Set state vector
+% Set state vector (deviation to steady state)
 S = zeros(mm, 1);
 
 %------------------------------------------------------------------------------
@@ -174,32 +171,32 @@ S = zeros(mm, 1);
 
 Rtild = inv(R(Z,:));
 const = -.5*rr*log(2*pi);
-const = const + log(abs(det(Rtild))) + sum(log(diag(iQ_upper_chol))); 
+const = const + log(abs(det(Rtild))) + sum(log(diag(iQ_upper_chol)));
 
 llik = zeros(size(Y, 2));
 
 Ytild = Rtild*Y;
-Ttild = Rtild*T(Z, :);
+Ttild = Rtild*T(Z,:);
 
-for t=1:DynareDataset.nobs
-    epsilon = Ytild(:,t) - Ttild*S;%Rtild*(Y(:,t)-T(Z,:)*S);
+for t=1:size(Y, 2)
+    epsilon = Ytild(:,t) - Ttild*S;
     upsilon = iQ_upper_chol*epsilon;
     S = T*S + R*epsilon;
     llik(t) = const - .5*(upsilon'*upsilon);
 end
 
 % Computes minus log-likelihood.
-likelihood = -sum(llik(DynareOptions.presample+1:DynareDataset.nobs));
+likelihood = -sum(llik(DynareOptions.presample+1:size(Y, 2)));
 
 
 % ------------------------------------------------------------------------------
 % 5. Adds prior if necessary
 % ------------------------------------------------------------------------------
 
-lnprior = priordens(xparam1,BayesInfo.pshape,BayesInfo.p6,BayesInfo.p7,BayesInfo.p3,BayesInfo.p4);
+lnprior = priordens(xparam1, BayesInfo.pshape, BayesInfo.p6, BayesInfo.p7, BayesInfo.p3, BayesInfo.p4);
 
 if DynareOptions.endogenous_prior==1
-    [lnpriormom]  = endogenous_prior(Y,Pstar,BayesInfo,H);
+    [lnpriormom]  = endogenous_prior(Y, Pstar, BayesInfo, H);
     fval = (likelihood-lnprior-lnpriormom);
 else
     fval = (likelihood-lnprior);
