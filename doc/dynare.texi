@@ -5290,6 +5290,19 @@ Re-enables the generation of graphs previously shut off with @ref{posterior_nogr
 @itemx graph_format = ( @var{FORMAT}, @var{FORMAT}@dots{} )
 @xref{graph_format}.
 
+@item conditional_likelihood
+Do not use a Kalman filter to evaluate the likelihood of the model. Instead
+evaluates the conditional likelihood by considering that the initial state
+vector is 0 for all the endogenous variables. This approach requires:
+(@emph{i}) that the number of structural innovations is equal to the number of
+observed variables, (@emph{ii}) the absence of measurement errors (as introduced
+with the dynare interface, see the @ref{estimated_params} block), and
+(@emph{iii}) the absence of missing observations. The evaluation of the
+conditional likelihood is faster and more stable than the evaluation of the
+likelihood with a Kalman filter. Also, this approach does not require
+adjustments for models with unit roots. This option is not yet compatible with
+@code{analytical_derivation}.
+
 @item lik_init = @var{INTEGER}
 @anchor{lik_init}
 Type of initialization of Kalman filter:

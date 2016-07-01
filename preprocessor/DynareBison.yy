@@ -102,6 +102,7 @@ class ParsingDriver;
 %token HISTVAL HISTVAL_FILE HOMOTOPY_SETUP HOMOTOPY_MODE HOMOTOPY_STEPS HOMOTOPY_FORCE_CONTINUE HP_FILTER HP_NGRID HYBRID ONE_SIDED_HP_FILTER
 %token IDENTIFICATION INF_CONSTANT INITVAL INITVAL_FILE BOUNDS JSCALE INIT INFILE INVARS
 %token <string_val> INT_NUMBER
+%token CONDITIONAL_LIKELIHOOD
 %token INV_GAMMA_PDF INV_GAMMA1_PDF INV_GAMMA2_PDF IRF IRF_SHOCKS IRF_PLOT_THRESHOLD IRF_CALIBRATION
 %token FAST_KALMAN_FILTER KALMAN_ALGO KALMAN_TOL DIFFUSE_KALMAN_TOL SUBSAMPLES OPTIONS TOLF TOLX PLOT_INIT_DATE PLOT_END_DATE
 %token LAPLACE LIK_ALGO LIK_INIT LINEAR LOAD_IDENT_FILES LOAD_MH_FILE LOAD_RESULTS_AFTER_LOAD_MH LOAD_PARAMS_AND_STEADY_STATE LOGLINEAR LOGDATA LYAPUNOV LINEAR_APPROXIMATION
@@ -1766,6 +1767,7 @@ estimation_options : o_datafile
                    | o_moments_varendo
                    | o_contemporaneous_correlation
                    | o_filtered_vars
+                   | o_conditional_likelihood
                    | o_fast_kalman_filter
                    | o_kalman_algo
                    | o_kalman_tol
@@ -2980,6 +2982,7 @@ o_load_results_after_load_mh : LOAD_RESULTS_AFTER_LOAD_MH { driver.option_num("l
 o_loglinear : LOGLINEAR { driver.option_num("loglinear", "1"); };
 o_linear_approximation : LINEAR_APPROXIMATION { driver.option_num("linear_approximation", "1"); }; 
 o_logdata : LOGDATA { driver.option_num("logdata", "1"); };
+o_conditional_likelihood : CONDITIONAL_LIKELIHOOD { driver.option_num("conditional_likelihood", "1"); };
 o_nodiagnostic : NODIAGNOSTIC { driver.option_num("nodiagnostic", "1"); };
 o_bayesian_irf : BAYESIAN_IRF { driver.option_num("bayesian_irf", "1"); };
 o_dsge_var : DSGE_VAR EQUAL non_negative_number

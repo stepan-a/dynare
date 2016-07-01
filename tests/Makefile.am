@@ -41,6 +41,8 @@ MODFILES = \
 	estimation/MH_recover/fs2000_recover_2.mod \
 	estimation/MH_recover/fs2000_recover_3.mod \
 	estimation/t_proposal/fs2000_student.mod \
+	estimation/conditional-likelihood/fs2000_simulation.mod \
+	estimation/conditional-likelihood/fs2000_estimation.mod \
 	moments/example1_var_decomp.mod \
 	moments/example1_bp_test.mod \
 	moments/test_AR1_spectral_density.mod \
@@ -416,6 +418,9 @@ AIM/ls2003_2L2L_AIM.o.trs: AIM/ls2003_2L2L.o.trs
 estimation/fs2000_model_comparison.m.trs: estimation/fs2000.m.trs estimation/fs2000_initialize_from_calib.m.trs estimation/fs2000_calibrated_covariance.m.trs
 estimation/fs2000_model_comparison.o.trs: estimation/fs2000.o.trs estimation/fs2000_initialize_from_calib.o.trs estimation/fs2000_calibrated_covariance.o.trs
 
+estimation/conditional-likelihood/fs2000_estimation.m.trs: estimation/conditional-likelihood/fs2000_simulation.m.trs
+estimation/conditional-likelihood/fs2000_estimation.o.trs: estimation/conditional-likelihood/fs2000_simulation.o.trs
+
 optimizers/fs2000_102.m.trs: estimation/fs2000.m.trs
 optimizers/fs2000_102.o.trs: estimation/fs2000.o.trs
 
@@ -765,6 +770,7 @@ EXTRA_DIST = \
 	gsa/morris/nk_est_data.m \
 	analytic_derivatives/fsdat_simul.m \
 	fs2000/fsdat_simul.m \
+	estimation/conditional_likelihood/fsdat_simul \
 	k_order_perturbation/run_fs2000kplusplus.m \
 	ls2003/data_ca1.m \
 	measurement_errors/data_ca1.m \

@@ -95,6 +95,9 @@ options_.steadystate.nocheck = 0;
 % subset of the estimated deep parameters
 options_.ParamSubSet = 'None';
 
+% Conditional likelihood
+options_.conditional_likelihood = 0;
+
 % bvar-dsge
 M_.bvar = [];
 options_.dsge_var = 0;
