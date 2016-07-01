@@ -348,6 +348,7 @@ DATE -?[0-9]+([YyAa]|[Mm]([1-9]|1[0-2])|[Qq][1-4]|[Ww]([1-9]{1}|[1-4][0-9]|5[0-2
 <DYNARE_STATEMENT>noconstant	{return token::NOCONSTANT;}
 <DYNARE_STATEMENT>covar         {return token::COVAR;}
 <DYNARE_STATEMENT>filename      {return token::FILENAME;}
+<DYNARE_STATEMENT>conditional_likelihood {return token::CONDITIONAL_LIKELIHOOD;}
 <DYNARE_STATEMENT>diffuse_filter {return token::DIFFUSE_FILTER;}
 <DYNARE_STATEMENT>plot_priors   {return token::PLOT_PRIORS;}
 <DYNARE_STATEMENT>aim_solver {return token::AIM_SOLVER;}

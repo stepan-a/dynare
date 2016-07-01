@@ -105,6 +105,8 @@ if ~options_.dsge_var
         else
             error(['Estimation: Unknown filter ' options_.particle.filter_algorithm])
         end
+    elseif options_.conditional_likelihood
+        objective_function = str2func('dsge_conditional_likelihood');
     else
         objective_function = str2func('dsge_likelihood');
     end
@@ -179,6 +181,7 @@ catch % if check fails, provide info on using calibration if present
     end
     rethrow(e);
 end
+
 
 if isequal(options_.mode_compute,0) && isempty(options_.mode_file) && options_.mh_posterior_mode_estimation==0
     if options_.smoother == 1
