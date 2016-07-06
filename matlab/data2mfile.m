@@ -1,4 +1,4 @@
-function datatomfile (s, var_list, names)
+function data2mfile(s, var_list, names, M_, oo_)
 
 % This optional command saves the simulation results in a text file. The name of each
 % variable preceeds the corresponding results.
@@ -13,12 +13,8 @@ function datatomfile (s, var_list, names)
 %
 % SPECIAL REQUIREMENTS
 %    none
-%
-% REMARKS 
-% Only the first argument is mandatory. If only one input argument is provided, all the variables as defined in 
-% M_.endo_names will be saved in the generated m file.
 
-% Copyright (C) 2001-2018 Dynare Team
+% Copyright (C) 2018 Dynare Team
 %
 % This file is part of Dynare.
 %
@@ -35,19 +31,45 @@ function datatomfile (s, var_list, names)
 % You should have received a copy of the GNU General Public License
 % along with Dynare.  If not, see <http://www.gnu.org/licenses/>.
 
-global M_ oo_
-
+% Set default values for the second argument
 if nargin<2 || isempty(var_list)
     var_list = M_.endo_names(1:M_.orig_endo_nbr);
 end
 
+% Set default values for the third argument or check consistency with the second argument
 if nargin>2 && ~isempty(names)
     if ~isequal(length(var_list), length(names))
-        error('datatomfile:: Second and third arguments must have the same number of rows (variables)!')
+        error('Second and third arguments must have the same number of elements!')
     end
 else
     names = var_list;
-    n = length(names);
 end
 
-data2mfile(s, var_list, names, M_, oo_);
+% Open the data file.
+sm=[s,'.m'];
+fid=fopen(sm,'w') ;
+
+n = length(var_list);
+ivar = zeros(n, 1);
+
+% Get indices for the endogenous variables.
+for i = 1:n
+    i_tmp = strmatch(var_list{i}, M_.endo_names, 'exact');
+    if isempty(i_tmp)
+        error (['One of the specified variables does not exist']) ;
+    else
+        ivar(i) = i_tmp;
+    end
+end
+
+% Save the selected data.
+for i = 1:n
+    fprintf(fid,[names{i}, ' = ['], '\n') ;
+    fprintf(fid,'\n') ;
+    fprintf(fid,'%15.8g\n', oo_.endo_simul(ivar(i),:)') ;
+    fprintf(fid,'];\n') ;
+    fprintf(fid,'\n') ;
+end
+
+% Close the data file.
+fclose(fid);
