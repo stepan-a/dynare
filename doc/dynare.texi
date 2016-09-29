@@ -6954,6 +6954,12 @@ more details.
 @item filter_decomposition
 @xref{filter_decomposition}.
 
+@item diffuse_filter = @var{INTEGER}
+@xref{diffuse_filter}.
+
+@item diffuse_kalman_tol = @var{DOUBLE}
+@xref{diffuse_kalman_tol}.
+
 @end table
 
 @end deffn

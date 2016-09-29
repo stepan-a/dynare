@@ -51,6 +51,9 @@ global options_ M_ bayestopt_ oo_ estim_params_   % estim_params_ may be emty
 
 persistent dataset_ dataset_info
 
+%store qz_criterium
+qz_criterium_old=options_.qz_criterium;
+
 if ischar(parameters) && strcmp(parameters,'calibration')
     options_.smoother=1;
 end
@@ -101,3 +104,6 @@ end
 if nargout==2
    Smoothed_variables_declaration_order_deviation_form=atT(oo_.dr.inv_order_var(bayestopt_.smoother_var_list),:);
 end
+
+%reset qz_criterium
+options_.qz_criterium=qz_criterium_old;
