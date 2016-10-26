@@ -399,6 +399,8 @@ public:
   void rplot();
   //! Writes a stock_simul command
   void stoch_simul();
+  //! Writes a var (vector autoregression) command
+  void var_model();
   //! Writes a simul command
   void simul();
   //! Writes check command
