@@ -408,6 +408,18 @@ ModFile::transformPass(bool nostrict)
         exit(EXIT_FAILURE);
       }
 
+  // Var Model
+  map<string, SymbolList > var_model_info;
+  for (vector<Statement *>::const_iterator it = statements.begin();
+       it != statements.end(); it++)
+    {
+      VarModelStatement *vms = dynamic_cast<VarModelStatement *>(*it);
+      if (vms != NULL)
+        vms->getVarModelNameAndVarList(var_model_info);
+    }
+  if (!var_model_info.empty())
+    dynamic_model.setVarExpectationIndices(var_model_info);
+
   // Freeze the symbol table
   symbol_table.freeze();
 
