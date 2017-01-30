@@ -151,6 +151,11 @@ for iter = 1:options.simul.maxit
     end
     iA = iA(1:m,:);
     A = sparse(iA(:,1),iA(:,2),iA(:,3),periods*ny,periods*ny);
+
+    if iter>1,
+        dy0=dy; % store previous update step
+    end
+    
     if endogenous_terminal_period && iter>1
         dy = ZERO;
         if options.simul.robust_lin_solve
@@ -163,8 +168,45 @@ for iter = 1:options.simul.maxit
             dy = -lin_solve_robust( A, res, verbose );            
         else
             dy = -lin_solve( A, res, verbose );
-        end
     end
+    if iter>1 && (any(~isreal(dy)) || any(isnan(dy)) || any(isinf(dy)) || (err/err0)>10),
+        % relaxation step, reducing length of update of previous
+        % iteration
+        if verbose
+            dyy=reshape(dy,[size(endogenousvariables,1) periods])';
+            if any(isnan(dy))
+                indx = find(any(isnan(dyy)));
+                endo_names=cellstr(M.endo_names(indx,:));
+                disp('Current iteration provided NaN for variables:')
+                fprintf('%s, ',endo_names{:}),
+                fprintf('\n'),
+                nan_flag = 1;
+                %         keyboard;
+            end
+            if any(isinf(dy))
+                indx = find(any(isinf(dyy)));
+                endo_names=cellstr(M.endo_names(indx,:));
+                disp('Current iteration diverged (Inf) for variables:')
+                fprintf('%s, ',endo_names{:}),
+                fprintf('\n'),
+            end
+            if any(~isreal(dy))
+                indx = find(any(~isreal(dyy)));
+                endo_names=cellstr(M.endo_names(indx,:));
+                disp('Current iteration provided complex number for variables:')
+                fprintf('%s, ',endo_names{:}),
+                fprintf('\n'),
+                
+            end
+        end
+        disp('Try relazation step.')
+        Y=Y0;
+        dy=dy0/10; %max(10,(err/err0));
+        err=err0;
+    end
+    Y0=Y; % store previous endogenous variables path
+    err0=err;
+    
     Y(i_upd) = Y(i_upd) + dy;
 end
 
@@ -184,7 +226,36 @@ if stop
         if verbose
             skipline()
             disp(sprintf('Total time of simulation: %s.', num2str(etime(clock,h1))))
-            disp('Simulation terminated with NaN or Inf in the residuals or endogenous variables.')
+            dyy=reshape(dy,[size(endogenousvariables,1) periods])';
+            if ~isreal(res) || ~isreal(Y)
+                disp('Simulation terminated with imaginary parts in the residuals or endogenous variables.')
+                if any(~isreal(dy))
+                    indx = find(any(~isreal(dyy)));
+                    endo_names=cellstr(M.endo_names(indx,:));
+                    disp('Newton algorithm provided complex number for variables:')
+                    fprintf('%s, ',endo_names{:}),
+                    fprintf('\n'),
+                    
+                end
+            else
+                disp('Simulation terminated with NaN or Inf in the residuals or endogenous variables.')
+                if any(isnan(dy))
+                    indx = find(any(isnan(dyy)));
+                    endo_names=cellstr(M.endo_names(indx,:));
+                    disp('Newton algorithm provided NaN for variables:')
+                    fprintf('%s, ',endo_names{:}),
+                    fprintf('\n'),
+                    nan_flag = 1;
+                    %         keyboard;
+                end
+                if any(isinf(dy))
+                    indx = find(any(isinf(dyy)));
+                    endo_names=cellstr(M.endo_names(indx,:));
+                    disp('Newton algorithm diverged (Inf) for variables:')
+                    fprintf('%s, ',endo_names{:}),
+                    fprintf('\n'),
+                end
+            end
             disp('There is most likely something wrong with your model. Try model_diagnostics or another simulation method.')
             printline(105)
         end
