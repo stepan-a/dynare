@@ -218,6 +218,8 @@ MODFILES = \
 	kalman_filter_smoother/fs2000a.mod \
 	kalman_filter_smoother/fs2000_smoother_only.mod \
 	kalman_filter_smoother/fs2000_smoother_only_ns.mod \
+	kalman_filter_smoother/fs2000_smoother_only_histval.mod \
+	kalman_filter_smoother/fs2000_smoother_only_ns_histval.mod \
 	kalman_filter_smoother/test_compute_Pinf_Pstar_data.mod \
 	kalman_filter_smoother/test_compute_Pinf_Pstar.mod \
 	kalman_filter_smoother/check_variable_dimensions/fs2000.mod \
