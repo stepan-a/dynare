@@ -112,15 +112,15 @@ if options.loglinear
     threshold = 1e-16;
     % Find variables with non positive steady state. Skip auxiliary
     % variables for lagges/leaded exogenous variables
-    idx = find(dr.ys(get_all_variables_but_lagged_leaded_exogenous(M))<threshold);
+    idx = find(abs(dr.ys(get_all_variables_but_lagged_leaded_exogenous(M)))<threshold);
     if length(idx)
         if options.debug
-            variables_with_non_positive_steady_state = M.endo_names(idx,:);
+            variables_with_zero_steady_state = M.endo_names(idx,:);
             skipline()
             fprintf('You are attempting to simulate/estimate a loglinear approximation of a model, but\n')
-            fprintf('the steady state level of the following variables is not strictly positive:\n')
+            fprintf('the steady state level of the following variables is zero:\n')
             for var_iter=1:length(idx)
-                fprintf(' - %s (%s)\n',deblank(variables_with_non_positive_steady_state(var_iter,:)), num2str(dr.ys(idx(var_iter))))
+                fprintf(' - %s (%s)\n',deblank(variables_with_zero_steady_state(var_iter,:)), num2str(dr.ys(idx(var_iter))))
             end
             if isestimation()
                 fprintf('You should check that the priors and/or bounds over the deep parameters are such\n')
@@ -133,7 +133,7 @@ if options.loglinear
             end
         end
         info(1)=26;
-        info(2)=sum(dr.ys(dr.ys<threshold).^2);
+        info(2)=sum(1./dr.ys(abs(dr.ys)<threshold));
         return
     end
 end
