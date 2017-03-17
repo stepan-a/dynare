@@ -2644,7 +2644,7 @@ of the Lagrange multipliers associated with the planner's problem cannot be set
 (@pxref{planner_objective_value}).
 
 @item 
-in @ref{estimation}, where it specifies the initial values of the endogenous states at the beginning 
+in @ref{estimation_cmd}, where it specifies the initial values of the endogenous states at the beginning 
 of the Kalman filter recursions. If nothing is specified, the initial condition is assumed to be at 
 the steady state (which is the unconditional mean for a stationary model).
 
