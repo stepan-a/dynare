@@ -240,6 +240,8 @@ if verbose
     skipline();
 end
 
+end
+
 function x = lin_solve( A, b,verbose)
     if norm( b ) < sqrt( eps ) % then x = 0 is a solution
         x = 0;
