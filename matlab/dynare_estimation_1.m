@@ -106,7 +106,11 @@ if ~options_.dsge_var
             error(['Estimation: Unknown filter ' options_.particle.filter_algorithm])
         end
     elseif options_.conditional_likelihood
-        objective_function = str2func('dsge_conditional_likelihood');
+        if options_.order==1
+            objective_function = str2func('linear_dsge_conditional_likelihood');
+        else
+            error('Condition likelihood is only available with first order approximation of the model!')
+        end
     else
         objective_function = str2func('dsge_likelihood');
     end

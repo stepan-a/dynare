@@ -1,5 +1,5 @@
 function [fval, info, exit_flag, DLIK, Hess, SteadyState, trend_coeff, Model, DynareOptions, BayesInfo, DynareResults] = ...
-        dsge_likelihood(xparam1, DynareDataset, DatasetInfo, DynareOptions, Model, EstimatedParameters, BayesInfo, BoundsInfo, DynareResults, derivatives_info)
+        linear_dsge_conditional_likelihood(xparam1, DynareDataset, DatasetInfo, DynareOptions, Model, EstimatedParameters, BayesInfo, BoundsInfo, DynareResults, derivatives_info)
 
 
 % Initialization of the returned variables and others.
