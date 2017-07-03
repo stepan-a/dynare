@@ -1,10 +1,10 @@
-function [fval,info,exit_flag,DLIK,Hess,SteadyState,trend_coeff,Model,DynareOptions,BayesInfo,DynareResults] = dsge_likelihood(xparam1,DynareDataset,DatasetInfo,DynareOptions,Model,EstimatedParameters,BayesInfo,BoundsInfo,DynareResults,derivatives_info)
+function [fval,info,exit_flag,DLIK,Hess,SteadyState,trend_coeff,Model,DynareOptions,BayesInfo,DynareResults] = dsge_likelihood(xparam1,DynareDataset,DatasetInfo,DynareOptions,DynareModel,EstimatedParameters,BayesInfo,BoundsInfo,DynareResults,derivatives_info)
 % Evaluates the posterior kernel of a dsge model using the specified
 % kalman_algo; the resulting posterior includes the 2*pi constant of the
 % likelihood function
 
 %@info:
-%! @deftypefn {Function File} {[@var{fval},@var{exit_flag},@var{ys},@var{trend_coeff},@var{info},@var{Model},@var{DynareOptions},@var{BayesInfo},@var{DynareResults},@var{DLIK},@var{AHess}] =} dsge_likelihood (@var{xparam1},@var{DynareDataset},@var{DynareOptions},@var{Model},@var{EstimatedParameters},@var{BayesInfo},@var{DynareResults},@var{derivatives_flag})
+%! @deftypefn {Function File} {[@var{fval},@var{exit_flag},@var{ys},@var{trend_coeff},@var{info},@var{DynareModel},@var{DynareOptions},@var{BayesInfo},@var{DynareResults},@var{DLIK},@var{AHess}] =} dsge_likelihood (@var{xparam1},@var{DynareDataset},@var{DynareOptions},@var{DynareModel},@var{EstimatedParameters},@var{BayesInfo},@var{DynareResults},@var{derivatives_flag})
 %! @anchor{dsge_likelihood}
 %! @sp 1
 %! Evaluates the posterior kernel of a dsge model.
@@ -132,15 +132,9 @@ function [fval,info,exit_flag,DLIK,Hess,SteadyState,trend_coeff,Model,DynareOpti
 % You should have received a copy of the GNU General Public License
 % along with Dynare.  If not, see <http://www.gnu.org/licenses/>.
 
-% AUTHOR(S) stephane DOT adjemian AT univ DASH lemans DOT FR
-
 % Initialization of the returned variables and others...
-fval        = [];
 SteadyState = [];
 trend_coeff = [];
-exit_flag   = 1;
-info        = zeros(4,1);
-DLIK        = [];
 Hess        = [];
 
 % Ensure that xparam1 is a column vector.
@@ -148,14 +142,14 @@ xparam1 = xparam1(:);
 
 if DynareOptions.estimation_dll
     [fval,exit_flag,SteadyState,trend_coeff,info,params,H,Q] ...
-        = logposterior(xparam1,DynareDataset, DynareOptions,Model, ...
+        = logposterior(xparam1,DynareDataset, DynareOptions, DynareModel, ...
                        EstimatedParameters,BayesInfo,DynareResults);
     mexErrCheck('logposterior', exit_flag);
-    Model.params = params;
-    if ~isequal(Model.H,0)
-        Model.H = H;
+    DynareModel.params = params;
+    if ~isequal(DynareModel.H,0)
+        DynareModel.H = H;
     end
-    Model.Sigma_e = Q;
+    DynareModel.Sigma_e = Q;
     DynareResults.dr.ys = SteadyState;
     return
 end
@@ -175,122 +169,28 @@ if analytic_derivation
     kron_flag=DynareOptions.analytic_derivation_mode;
 end
 
-%------------------------------------------------------------------------------
+% ---------------------------------------------------
 % 1. Get the structural parameters & define penalties
-%------------------------------------------------------------------------------
+% ---------------------------------------------------
 
-% Return, with endogenous penalty, if some parameters are smaller than the lower bound of the prior domain.
-if isestimation(DynareOptions) && ~isequal(DynareOptions.mode_compute,1) && any(xparam1<BoundsInfo.lb)
-    k = find(xparam1<BoundsInfo.lb);
-    fval = Inf;
-    exit_flag = 0;
-    info(1) = 41;
-    info(4)= sum((BoundsInfo.lb(k)-xparam1(k)).^2);
-    if analytic_derivation
-        DLIK=ones(length(xparam1),1);
-    end
+[DynareModel, Q, H, fval, exit_flag, info, DLIK] = likelihood_parameters(xparam1,  BoundsInfo, DynareOptions, DynareModel, EstimatedParameters);
+
+if ~exit_flag
     return
 end
 
-% Return, with endogenous penalty, if some parameters are greater than the upper bound of the prior domain.
-if isestimation(DynareOptions) && ~isequal(DynareOptions.mode_compute,1) && any(xparam1>BoundsInfo.ub)
-    k = find(xparam1>BoundsInfo.ub);
-    fval = Inf;
-    exit_flag = 0;
-    info(1) = 42;
-    info(4)= sum((xparam1(k)-BoundsInfo.ub(k)).^2);
-    if analytic_derivation
-        DLIK=ones(length(xparam1),1);
-    end
-    return
-end
-
-% Get the diagonal elements of the covariance matrices for the structural innovations (Q) and the measurement error (H).
-Model = set_all_parameters(xparam1,EstimatedParameters,Model);
-
-Q = Model.Sigma_e;
-H = Model.H;
-
-% Test if Q is positive definite.
-if ~issquare(Q) || EstimatedParameters.ncx || isfield(EstimatedParameters,'calibrated_covariances')
-    [Q_is_positive_definite, penalty] = ispd(Q(EstimatedParameters.Sigma_e_entries_to_check_for_positive_definiteness,EstimatedParameters.Sigma_e_entries_to_check_for_positive_definiteness));
-    if ~Q_is_positive_definite
-        fval = Inf;
-        exit_flag = 0;
-        info(1) = 43;
-        info(4) = penalty;
-        return
-    end
-    if isfield(EstimatedParameters,'calibrated_covariances')
-        correct_flag=check_consistency_covariances(Q);
-        if ~correct_flag
-            penalty = sum(Q(EstimatedParameters.calibrated_covariances.position).^2);
-            fval = Inf;
-            exit_flag = 0;
-            info(1) = 71;
-            info(4) = penalty;
-            return
-        end
-    end
-end
-
-% Test if H is positive definite.
-if ~issquare(H) || EstimatedParameters.ncn || isfield(EstimatedParameters,'calibrated_covariances_ME')
-    [H_is_positive_definite, penalty] = ispd(H(EstimatedParameters.H_entries_to_check_for_positive_definiteness,EstimatedParameters.H_entries_to_check_for_positive_definiteness));
-    if ~H_is_positive_definite
-        fval = Inf;
-        info(1) = 44;
-        info(4) = penalty;
-        exit_flag = 0;
-        return
-    end
-    if isfield(EstimatedParameters,'calibrated_covariances_ME')
-        correct_flag=check_consistency_covariances(H);
-        if ~correct_flag
-            penalty = sum(H(EstimatedParameters.calibrated_covariances_ME.position).^2);
-            fval = Inf;
-            exit_flag = 0;
-            info(1) = 72;
-            info(4) = penalty;
-            return
-        end
-    end
-end
-
-
-%------------------------------------------------------------------------------
+% ---------------------------------------
 % 2. call model setup & reduction program
-%------------------------------------------------------------------------------
+% ---------------------------------------
 
-% Linearize the model around the deterministic steady state and extract the matrices of the state equation (T and R).
-[T,R,SteadyState,info,Model,DynareOptions,DynareResults] = dynare_resolve(Model,DynareOptions,DynareResults,'restrict');
+[T, R, SteadyState, exit_flag, info, DynareModel, DynareOptions, DynareResults, DLIK] = reduced_form_model(DynareModel, DynareOptions, DynareResults);
 
-% Return, with endogenous penalty when possible, if dynare_resolve issues an error code (defined in resol).
-if info(1)
-    if info(1) == 3 || info(1) == 4 || info(1) == 5 || info(1)==6 ||info(1) == 19 ||...
-                info(1) == 20 || info(1) == 21 || info(1) == 23 || info(1) == 26 || ...
-                info(1) == 81 || info(1) == 84 ||  info(1) == 85 ||  info(1) == 86
-        %meaningful second entry of output that can be used
-        fval = Inf;
-        info(4) = info(2);
-        exit_flag = 0;
-        if analytic_derivation
-            DLIK=ones(length(xparam1),1);
-        end
-        return
-    else
-        fval = Inf;
-        info(4) = 0.1;
-        exit_flag = 0;
-        if analytic_derivation
-            DLIK=ones(length(xparam1),1);
-        end
-        return
-    end
+if ~exit_flag
+    return
 end
 
 % check endogenous prior restrictions
-info=endogenous_prior_restrictions(T,R,Model,DynareOptions,DynareResults);
+info=endogenous_prior_restrictions(T,R,DynareModel,DynareOptions,DynareResults);
 if info(1)
     fval = Inf;
     info(4)=info(2);
@@ -317,7 +217,7 @@ end
 
 % Define the deterministic linear trend of the measurement equation.
 if BayesInfo.with_trend
-    [trend_addition, trend_coeff]=compute_trend_coefficients(Model,DynareOptions,DynareDataset.vobs,DynareDataset.nobs);
+    [trend_addition, trend_coeff]=compute_trend_coefficients(DynareModel,DynareOptions,DynareDataset.vobs,DynareDataset.nobs);
     trend = repmat(constant,1,DynareDataset.nobs)+trend_addition;
 else
     trend_coeff = zeros(DynareDataset.vobs,1);
@@ -511,7 +411,7 @@ if analytic_derivation
     AHess = [];
     iv = DynareResults.dr.restrict_var_list;
     if nargin<10 || isempty(derivatives_info)
-        [A,B,nou,nou,Model,DynareOptions,DynareResults] = dynare_resolve(Model,DynareOptions,DynareResults);
+        [A,B,nou,nou,DynareModel,DynareOptions,DynareResults] = dynare_resolve(DynareModel,DynareOptions,DynareResults);
         if ~isempty(EstimatedParameters.var_exo)
             indexo=EstimatedParameters.var_exo(:,1);
         else
@@ -523,10 +423,10 @@ if analytic_derivation
             indparam=[];
         end
         if full_Hess
-            [dum, DT, DOm, DYss, dum2, D2T, D2Om, D2Yss] = getH(A, B, EstimatedParameters, Model,DynareResults,DynareOptions,kron_flag,indparam,indexo,iv);
+            [dum, DT, DOm, DYss, dum2, D2T, D2Om, D2Yss] = getH(A, B, EstimatedParameters, DynareModel,DynareResults,DynareOptions,kron_flag,indparam,indexo,iv);
             clear dum dum2;
         else
-            [dum, DT, DOm, DYss] = getH(A, B, EstimatedParameters, Model,DynareResults,DynareOptions,kron_flag,indparam,indexo,iv);
+            [dum, DT, DOm, DYss] = getH(A, B, EstimatedParameters, DynareModel,DynareResults,DynareOptions,kron_flag,indparam,indexo,iv);
         end
     else
         DT = derivatives_info.DT(iv,iv,:);
@@ -630,7 +530,7 @@ singularity_has_been_detected = false;
 if ((kalman_algo==1) || (kalman_algo==3))% Multivariate Kalman Filter
     if no_missing_data_flag
         if DynareOptions.block
-            [err, LIK] = block_kalman_filter(T,R,Q,H,Pstar,Y,start,Z,kalman_tol,riccati_tol, Model.nz_state_var, Model.n_diag, Model.nobs_non_statevar);
+            [err, LIK] = block_kalman_filter(T,R,Q,H,Pstar,Y,start,Z,kalman_tol,riccati_tol, DynareModel.nz_state_var, DynareModel.n_diag, DynareModel.nobs_non_statevar);
             mexErrCheck('block_kalman_filter', err);
         elseif DynareOptions.fast_kalman_filter
             if diffuse_periods
@@ -661,7 +561,7 @@ if ((kalman_algo==1) || (kalman_algo==3))% Multivariate Kalman Filter
     else
         if 0 %DynareOptions.block
             [err, LIK,lik] = block_kalman_filter(DatasetInfo.missing.aindex,DatasetInfo.missing.number_of_observations,DatasetInfo.missing.no_more_missing_observations,...
-                                                 T,R,Q,H,Pstar,Y,start,Z,kalman_tol,riccati_tol, Model.nz_state_var, Model.n_diag, Model.nobs_non_statevar);
+                                                 T,R,Q,H,Pstar,Y,start,Z,kalman_tol,riccati_tol, DynareModel.nz_state_var, DynareModel.n_diag, DynareModel.nobs_non_statevar);
         else
             [LIK,lik] = missing_observations_kalman_filter(DatasetInfo.missing.aindex,DatasetInfo.missing.number_of_observations,DatasetInfo.missing.no_more_missing_observations,Y,diffuse_periods+1,size(Y,2), ...
                                                            a, Pstar, ...
@@ -852,7 +752,7 @@ else
 end
 
 if DynareOptions.prior_restrictions.status
-    tmp = feval(DynareOptions.prior_restrictions.routine, Model, DynareResults, DynareOptions, DynareDataset, DatasetInfo);
+    tmp = feval(DynareOptions.prior_restrictions.routine, DynareModel, DynareResults, DynareOptions, DynareDataset, DatasetInfo);
     fval = fval - tmp;
 end
 

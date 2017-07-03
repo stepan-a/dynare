@@ -1,5 +1,5 @@
 function [fval, info, exit_flag, DLIK, Hess, SteadyState, trend_coeff, Model, DynareOptions, BayesInfo, DynareResults] = ...
-        linear_dsge_conditional_likelihood(xparam1, DynareDataset, DatasetInfo, DynareOptions, Model, EstimatedParameters, BayesInfo, BoundsInfo, DynareResults, derivatives_info)
+        linear_dsge_conditional_likelihood(xparam1, DynareDataset, DatasetInfo, DynareOptions, DynareModel, EstimatedParameters, BayesInfo, BoundsInfo, DynareResults, derivatives_info)
 
 
 % Initialization of the returned variables and others.
@@ -21,53 +21,10 @@ end
 % 1. Get the structural parameters & define penalties
 %------------------------------------------------------------------------------
 
-% Return, with endogenous penalty, if some parameters are smaller than the lower bound of the prior domain.
-if ~isequal(DynareOptions.mode_compute, 1) && any(xparam1<BoundsInfo.lb)
-    k = find(xparam1<BoundsInfo.lb);
-    fval = Inf;
-    exit_flag = 0;
-    info(1) = 41;
-    info(4)= sum((BoundsInfo.lb(k)-xparam1(k)).^2);
+[DynareModel, Q, H, fval, exit_flag, info] = likelihood_parameters(xparam1,  BoundsInfo, DynareOptions, DynareModel, EstimatedParameters);
+
+if ~exit_flag
     return
-end
-
-% Return, with endogenous penalty, if some parameters are greater than the upper bound of the prior domain.
-if ~isequal(DynareOptions.mode_compute, 1) && any(xparam1>BoundsInfo.ub)
-    k = find(xparam1>BoundsInfo.ub);
-    fval = Inf;
-    exit_flag = 0;
-    info(1) = 42;
-    info(4)= sum((xparam1(k)-BoundsInfo.ub(k)).^2);
-    return
-end
-
-% Get the diagonal elements of the covariance matrices for the structural innovations (Q) and the measurement error (H).
-Model = set_all_parameters(xparam1, EstimatedParameters, Model);
-
-Q = Model.Sigma_e;
-H = Model.H;
-
-% Test if Q is positive definite.
-if ~issquare(Q) || EstimatedParameters.ncx || isfield(EstimatedParameters,'calibrated_covariances')
-    [Q_is_positive_definite, penalty] = ispd(Q(EstimatedParameters.Sigma_e_entries_to_check_for_positive_definiteness, EstimatedParameters.Sigma_e_entries_to_check_for_positive_definiteness));
-    if ~Q_is_positive_definite
-        fval = Inf;
-        exit_flag = 0;
-        info(1) = 43;
-        info(4) = penalty;
-        return
-    end
-    if isfield(EstimatedParameters, 'calibrated_covariances')
-        correct_flag=check_consistency_covariances(Q);
-        if ~correct_flag
-            penalty = sum(Q(EstimatedParameters.calibrated_covariances.position).^2);
-            fval = Inf;
-            exit_flag = 0;
-            info(1) = 71;
-            info(4) = penalty;
-            return
-        end
-    end
 end
 
 Q_upper_chol = chol(Q);
@@ -82,30 +39,14 @@ end
 % 2. call model setup & reduction program
 %------------------------------------------------------------------------------
 
-% Linearize the model around the deterministic sdteadystate and extract the matrices of the state equation (T and R).
-[T, R, SteadyState, info, Model, DynareOptions, DynareResults] = ...
-    dynare_resolve(Model, DynareOptions, DynareResults, 'restrict');
+[T, R, SteadyState, exit_flag, info, DynareModel, DynareOptions, DynareResults] = reduced_form_model(DynareModel, DynareOptions, DynareResults);
 
-% Return, with endogenous penalty when possible, if dynare_resolve issues an error code (defined in resol).
-if info(1)
-    if info(1) == 3 || info(1) == 4 || info(1) == 5 || info(1)==6 ||info(1) == 19 ...
-                info(1) == 20 || info(1) == 21 || info(1) == 23 || info(1) == 26 || ...
-                info(1) == 81 || info(1) == 84 ||  info(1) == 85
-        %meaningful second entry of output that can be used
-        fval = Inf;
-        info(4) = info(2);
-        exit_flag = 0;
-        return
-    else
-        fval = Inf;
-        info(4) = 0.1;
-        exit_flag = 0;
-        return
-    end
+if ~exit_flag
+    return
 end
 
 % check endogenous prior restrictions
-info = endogenous_prior_restrictions(T, R, Model, DynareOptions, DynareResults);
+info = endogenous_prior_restrictions(T, R, DynareModel, DynareOptions, DynareResults);
 if info(1)
     fval = Inf;
     info(4)=info(2);
@@ -129,7 +70,7 @@ end
 
 % Define the deterministic linear trend of the measurement equation.
 if BayesInfo.with_trend
-    [trend_addition, trend_coeff]=compute_trend_coefficients(Model, DynareOptions, DynareDataset.vobs, DynareDataset.nobs);
+    [trend_addition, trend_coeff]=compute_trend_coefficients(DynareModel, DynareOptions, DynareDataset.vobs, DynareDataset.nobs);
     trend = repmat(constant, 1, DynareDataset.nobs)+trend_addition;
 else
     trend_coeff = zeros(DynareDataset.vobs, 1);
@@ -203,7 +144,7 @@ else
 end
 
 if DynareOptions.prior_restrictions.status
-    tmp = feval(DynareOptions.prior_restrictions.routine, Model, DynareResults, DynareOptions, DynareDataset, DatasetInfo);
+    tmp = feval(DynareOptions.prior_restrictions.routine, DynareModel, DynareResults, DynareOptions, DynareDataset, DatasetInfo);
     fval = fval - tmp;
 end
 

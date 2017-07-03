@@ -1,4 +1,4 @@
-function [fval,info,exit_flag,grad,hess,SteadyState,trend_coeff,PHI_tilde,SIGMA_u_tilde,iXX,prior] = dsge_var_likelihood(xparam1,DynareDataset,DynareInfo,DynareOptions,Model,EstimatedParameters,BayesInfo,BoundsInfo,DynareResults)
+function [fval,info,exit_flag,grad,hess,SteadyState,trend_coeff,PHI_tilde,SIGMA_u_tilde,iXX,prior] = dsge_var_likelihood(xparam1,DynareDataset,DynareInfo,DynareOptions,DynareModel,EstimatedParameters,BayesInfo,BoundsInfo,DynareResults)
 % Evaluates the posterior kernel of the bvar-dsge model.
 %
 % INPUTS
@@ -73,7 +73,7 @@ xparam1 = xparam1(:);
 
 % Initialization of of the index for parameter dsge_prior_weight in Model.params.
 if isempty(dsge_prior_weight_idx)
-    dsge_prior_weight_idx = strmatch('dsge_prior_weight',Model.param_names);
+    dsge_prior_weight_idx = strmatch('dsge_prior_weight', DynareModel.param_names);
 end
 
 % Get the number of estimated (dsge) parameters.
@@ -101,40 +101,15 @@ mYX = evalin('base', 'mYX');
 mXY = evalin('base', 'mXY');
 mXX = evalin('base', 'mXX');
 
-% Return, with endogenous penalty, if some dsge-parameters are smaller than the lower bound of the prior domain.
-if isestimation(DynareOptions) && DynareOptions.mode_compute ~= 1 && any(xparam1 < BoundsInfo.lb)
-    k = find(xparam1 < BoundsInfo.lb);
-    fval = Inf;
-    exit_flag = 0;
-    info(1) = 41;
-    info(4)= sum((BoundsInfo.lb(k)-xparam1(k)).^2);
+% Check that parameters are within prior bounds and update Q.
+[DynareModel, Q, H, fval, exit_flag, info] = likelihood_parameters(xparam1, BoundsInfo, DynareOptions, DynareModel, EstimatedParameters);
+
+if ~exit_flag
     return
 end
 
-% Return, with endogenous penalty, if some dsge-parameters are greater than the upper bound of the prior domain.
-if isestimation(DynareOptions) && DynareOptions.mode_compute ~= 1 && any(xparam1 > BoundsInfo.ub)
-    k = find(xparam1 > BoundsInfo.ub);
-    fval = Inf;
-    exit_flag = 0;
-    info(1) = 42;
-    info(4) = sum((xparam1(k)-BoundsInfo.ub(k)).^2);
-    return
-end
-
-% Get the variance of each structural innovation.
-Q = Model.Sigma_e;
-for i=1:EstimatedParameters.nvx
-    k = EstimatedParameters.var_exo(i,1);
-    Q(k,k) = xparam1(i)*xparam1(i);
-end
-offset = EstimatedParameters.nvx;
-
-% Update Model.params and Model.Sigma_e.
-Model.params(EstimatedParameters.param_vals(:,1)) = xparam1(offset+1:end);
-Model.Sigma_e = Q;
-
-% Get the weight of the dsge prior.
-dsge_prior_weight = Model.params(dsge_prior_weight_idx);
+% Update the weight of the dsge prior.
+dsge_prior_weight = DynareModel.params(dsge_prior_weight_idx);
 
 % Is the dsge prior proper?
 if dsge_prior_weight<(NumberOfParameters+NumberOfObservedVariables)/NumberOfObservations
@@ -151,26 +126,10 @@ end
 % 2. call model setup & reduction program
 %------------------------------------------------------------------------------
 
-% Solve the Dsge model and get the matrices of the reduced form solution. T and R are the matrices of the
-% state equation
-[T,R,SteadyState,info,Model,DynareOptions,DynareResults] = dynare_resolve(Model,DynareOptions,DynareResults,'restrict');
+[T, R, SteadyState, exit_flag, info, DynareModel, DynareOptions, DynareResults] = reduced_form_model(DynareModel, DynareOptions, DynareResults);
 
-% Return, with endogenous penalty when possible, if dynare_resolve issues an error code (defined in resol).
-if info(1)
-    if info(1) == 3 || info(1) == 4 || info(1) == 5 || info(1)==6 ||info(1) == 19 ||...
-                info(1) == 20 || info(1) == 21 || info(1) == 23 || info(1) == 26 || ...
-                info(1) == 81 || info(1) == 84 ||  info(1) == 85
-        %meaningful second entry of output that can be used
-        fval = Inf;
-        info(4) = info(2);
-        exit_flag = 0;
-        return
-    else
-        fval = Inf;
-        info(4) = 0.1;
-        exit_flag = 0;
-        return
-    end
+if ~exit_flag
+    return
 end
 
 % Define the mean/steady state vector.
