@@ -269,10 +269,10 @@ for b=fpar:B
                 if options_.prefilter
                     stock_filter_step_ahead(ii,IdObs,:,irun(4)) = squeeze(stock_filter_step_ahead(ii,IdObs,:,irun(4)))...
                         +repmat(mean_correction(:,1),1,gend+max(options_.filter_step_ahead))... %constant correction
-                        +[trend_addition repmat(trend_addition(:,end),1,max(options_.filter_step_ahead))+trend_coeff*[1:max(options_.filter_step_ahead)]]; %trend
+                        +transpose([trend_addition repmat(trend_addition(:,end),1,max(options_.filter_step_ahead))+trend_coeff*[1:max(options_.filter_step_ahead)]]); %trend
                 else
                     stock_filter_step_ahead(ii,IdObs,:,irun(4)) = squeeze(stock_filter_step_ahead(ii,IdObs,:,irun(4)))...
-                        +[trend_addition repmat(trend_addition(:,end),1,max(options_.filter_step_ahead))+trend_coeff*[1:max(options_.filter_step_ahead)]]; %trend
+                        +transpose([trend_addition repmat(trend_addition(:,end),1,max(options_.filter_step_ahead))+trend_coeff*[1:max(options_.filter_step_ahead)]]); %trend
                 end
             end
         end
