@@ -80,4 +80,13 @@ varobs gp_obs gy_obs;
 
 options_.solve_tolf = 1e-12;
 
+tic
 estimation(conditional_likelihood,order=1,datafile=fsdat_simul,nobs=192,mode_compute=4,mode_check,loglinear,mh_replic=0,mh_nblocks=2,mh_jscale=0.8);
+toc
+
+exact_likelihood = load('fs2000_estimation_exact_results.mat');
+oo_exact_likelihood = exact_likelihood.oo_;
+oo_conditional_likelihood = oo_;
+
+diff = 100*(oo_conditional_likelihood.posterior.optimization.mode-oo_exact_likelihood.posterior.optimization.mode)./oo_exact_likelihood.posterior.optimization.mode;
+diff

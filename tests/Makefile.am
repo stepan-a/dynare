@@ -42,7 +42,8 @@ MODFILES = \
 	estimation/MH_recover/fs2000_recover_3.mod \
 	estimation/t_proposal/fs2000_student.mod \
 	estimation/conditional-likelihood/fs2000_simulation.mod \
-	estimation/conditional-likelihood/fs2000_estimation.mod \
+	estimation/conditional-likelihood/fs2000_estimation_exact.mod \
+	estimation/conditional-likelihood/fs2000_estimation_conditional.mod \
 	moments/example1_var_decomp.mod \
 	moments/example1_bp_test.mod \
 	moments/test_AR1_spectral_density.mod \
@@ -421,8 +422,11 @@ AIM/ls2003_2L2L_AIM.o.trs: AIM/ls2003_2L2L.o.trs
 estimation/fs2000_model_comparison.m.trs: estimation/fs2000.m.trs estimation/fs2000_initialize_from_calib.m.trs estimation/fs2000_calibrated_covariance.m.trs
 estimation/fs2000_model_comparison.o.trs: estimation/fs2000.o.trs estimation/fs2000_initialize_from_calib.o.trs estimation/fs2000_calibrated_covariance.o.trs
 
-estimation/conditional-likelihood/fs2000_estimation.m.trs: estimation/conditional-likelihood/fs2000_simulation.m.trs
-estimation/conditional-likelihood/fs2000_estimation.o.trs: estimation/conditional-likelihood/fs2000_simulation.o.trs
+estimation/conditional-likelihood/fs2000_estimation_exact.m.trs: estimation/conditional-likelihood/fs2000_simulation.m.trs
+estimation/conditional-likelihood/fs2000_estimation_exact.o.trs: estimation/conditional-likelihood/fs2000_simulation.o.trs
+
+estimation/conditional-likelihood/fs2000_estimation_conditional.m.trs: estimation/conditional-likelihood/fs2000_estimation_exact.m.trs
+estimation/conditional-likelihood/fs2000_estimation_conditional.o.trs: estimation/conditional-likelihood/fs2000_estimation_exact.o.trs
 
 optimizers/fs2000_102.m.trs: estimation/fs2000.m.trs
 optimizers/fs2000_102.o.trs: estimation/fs2000.o.trs
