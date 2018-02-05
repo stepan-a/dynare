@@ -1,64 +1,36 @@
-function [y,y_] = local_state_space_iteration_2(yhat,epsilon,ghx,ghu,constant,ghxx,ghuu,ghxu,a,b,c)%yhat_,ss)
+function [y, y_] = local_state_space_iteration_2(yhat, epsilon, ghx, ghu, constant, ghxx, ghuu, ghxu, a, b, c) %yhat_,ss)
 
-%@info:
-%! @deftypefn {Function File} {@var{y}, @var{y_} =} local_state_equation_2 (@var{yhat},@var{epsilon}, @var{ghx}, @var{ghu}, @var{constant}, @var{ghxx}, @var{ghuu}, @var{ghxu}, @var{yhat_}, @var{ss})
-%! @anchor{particle/local_state_space_iteration_2}
-%! @sp 1
-%! Given the states (y) and structural innovations (epsilon), this routine computes the level of selected endogenous variables when the
-%! model is approximated by an order two taylor expansion around the deterministic steady state. Depending on the number of input/output
-%! argument the pruning algorithm advocated by C. Sims is used or not (this version should not be used if the selected endogenous variables
-%! are not the states of the model).
-%!
-%! @sp 2
-%! @strong{Inputs}
-%! @sp 1
-%! @table @ @var
-%! @item yhat
-%! n*1 vector of doubles, initial condition, where n is the number of state variables.
-%! @item epsilon
-%! q*1 vector of doubles, structural innovations.
-%! @item ghx
-%! m*n matrix of doubles, restricted dr.ghx where we only consider the lines corresponding to a subset of endogenous variables.
-%! @item ghu
-%! m*q matrix of doubles, restricted dr.ghu where we only consider the lines corresponding to a subset of endogenous variables.
-%! @item constant
-%! m*1 vector of doubles, deterministic steady state plus second order correction for a subset of endogenous variables.
-%! @item ghxx
-%! m*n² matrix of doubles, restricted dr.ghxx where we only consider the lines corresponding to a subset of endogenous variables.
-%! @item ghuu
-%! m*q² matrix of doubles, restricted dr.ghuu where we only consider the lines corresponding to a subset of endogenous variables.
-%! @item ghxu
-%! m*(nq) matrix of doubles, subset of dr.ghxu where we only consider the lines corresponding to a subset of endogenous variables.
-%! @item yhat_
-%! n*1 vector of doubles, spurious states for the pruning version.
-%! @item ss
-%! n*1 vector of doubles, steady state for the states.
-%! @end table
-%! @sp 2
-%! @strong{Outputs}
-%! @sp 1
-%! @table @ @var
-%! @item y
-%! m*1 vector of doubles, selected endogenous variables.
-%! @item y_
-%! m*1 vector of doubles, update of the latent variables needed for the pruning version (first order update).
-%! @end table
-%! @sp 2
-%! @strong{Remarks}
-%! @sp 1
-%! [1] If the function has 10 input arguments then it must have 2 output arguments (pruning version).
-%! @sp 1
-%! [2] If the function has 08 input arguments then it must have 1 output argument.
-%! @sp 2
-%! @strong{This function is called by:}
-%! @sp 2
-%! @strong{This function calls:}
-%!
-%!
-%! @end deftypefn
-%@eod:
+% Given the states (y) and structural innovations (epsilon), this routine computes the level of selected endogenous variables when the
+% model is approximated by an order two taylor expansion around the deterministic steady state. Depending on the number of input/output
+% argument the pruning algorithm advocated by C. Sims is used or not (this version should not be used if the selected endogenous variables
+% are not the states of the model).
+%
+% INPUTS 
+% - yhat       [double]           n*1 vector, initial conditions (n is the number of state variables).
+% - epsilon    [double]           q*1 vector, structural innovations.
+% - ghx        [double]           m*n matrix, restricted dr.ghx where we only the lines corresponding to a subset of endogenous variables.
+% - ghu        [double]           m*q matrix, restricted dr.ghu where we only consider the lines corresponding to a subset of endogenous variables.
+% - constant   [double]           m*1 vector, deterministic steady state plus second order correction for a subset of endogenous variables.
+% - ghxx       [double]           m*n² matrix, restricted dr.ghxx where we only consider the lines corresponding to a subset of endogenous variables.
+% - ghuu       [double]           m*q² matrix, restricted dr.ghuu where we only consider the lines corresponding to a subset of endogenous variables.
+% - ghxu       [double]           m*(nq) matrix, restricted dr.ghxu where we only consider the lines corresponding to a subset of endogenous variables.
+% - ...
+%
+% OUTPUTS 
+% - y          [double]           m*1 vector, selected endogenous variables.
+% - y_         [double]           m*1 vector, latent variables needed for pruning.
+%
+% REMARKS 
+% - [1] If the function has 11 input arguments then it must have 2 output
+% arguments (pruning version). In this case the 11th element is the number
+% of threads to be used (only in the Mex version), elements 9th and 10th are
+% n*1 and m*1 vectors for the state of the pruning latent variables and the
+% deterministic steady state. 
+% - [2] If the function has 9 input arguments then it must have 1 output
+% argument. The last input argument is the number of threads to be used
+% (only in the Mex version).  
 
-% Copyright (C) 2011-2014 Dynare Team
+% Copyright (C) 2011-2018 Dynare Team
 %
 % This file is part of Dynare.
 %
@@ -75,42 +47,42 @@ function [y,y_] = local_state_space_iteration_2(yhat,epsilon,ghx,ghu,constant,gh
 % You should have received a copy of the GNU General Public License
 % along with Dynare.  If not, see <http://www.gnu.org/licenses/>.
 
-% AUTHOR(S) stephane DOT adjemian AT univ DASH lemans DOT fr
-%           frederic DOT karame AT univ DASH evry DOT fr
-
 if nargin==9
-    pruning = 0; numthreads = a;
+    pruning = false;
+    numthreads = varargin{1};
     if nargout>1
-        error('local_state_space_iteration_2:: Numbers of input and output argument are inconsistent!')
+        error('Numbers of input and output argument are inconsistent!')
     end
 elseif nargin==11
-    pruning = 1; numthreads = c; yhat_ = a; ss = b;
+    pruning = true;
+    numthreads = varargin{11};
+    yhat_ = varargin{9};
+    ss = varargin{10};
     if nargout~=2
-        error('local_state_space_iteration_2:: Numbers of input and output argument are inconsistent!')
+        error('Numbers of input and output argument are inconsistent!')
     end
 else
-    error('local_state_space_iteration_2:: Wrong number of input arguments!')
+    error('Wrong number of input arguments!')
 end
 
 number_of_threads = numthreads;
 
-switch pruning
-  case 0
-    for i =1:size(yhat,2)
+if pruning
+    for i = 1:size(yhat, 2)
         y(:,i) = constant + ghx*yhat(:,i) + ghu*epsilon(:,i) ...
-                 + A_times_B_kronecker_C(.5*ghxx,yhat(:,i),number_of_threads)  ...
-                 + A_times_B_kronecker_C(.5*ghuu,epsilon(:,i),number_of_threads) ...
-                 + A_times_B_kronecker_C(ghxu,yhat(:,i),epsilon(:,i),number_of_threads);
-    end
-  case 1
-    for i =1:size(yhat,2)
-        y(:,i) = constant + ghx*yhat(:,i) + ghu*epsilon(:,i) ...
-                 + A_times_B_kronecker_C(.5*ghxx,yhat_(:,i),number_of_threads)  ...
-                 + A_times_B_kronecker_C(.5*ghuu,epsilon(:,i),number_of_threads) ...
-                 + A_times_B_kronecker_C(ghxu,yhat_(:,i),epsilon(:,i),number_of_threads);
+                 + A_times_B_kronecker_C(.5*ghxx,yhat_(:,i), number_of_threads)  ...
+                 + A_times_B_kronecker_C(.5*ghuu,epsilon(:,i), number_of_threads) ...
+                 + A_times_B_kronecker_C(ghxu,yhat_(:,i), epsilon(:,i), number_of_threads);
     end
     y_ = ghx*yhat_+ghu*epsilon;
-    y_ = bsxfun(@plus,y_,ss);
+    y_ = bsxfun(@plus, y_, ss);
+else
+    for i = 1:size(yhat, 2)
+        y(:,i) = constant + ghx*yhat(:,i) + ghu*epsilon(:,i) ...
+                 + A_times_B_kronecker_C(.5*ghxx,yhat(:,i), number_of_threads)  ...
+                 + A_times_B_kronecker_C(.5*ghuu,epsilon(:,i), number_of_threads) ...
+                 + A_times_B_kronecker_C(ghxu,yhat(:,i),epsilon(:,i), number_of_threads);
+    end
 end
 
 %@test:1
