@@ -1,5 +1,22 @@
 function [fval, info, exit_flag, DLIK, Hess, SteadyState, trend_coeff, Model, DynareOptions, BayesInfo, DynareResults] = ...
-        dsge_likelihood(xparam1, DynareDataset, DatasetInfo, DynareOptions, Model, EstimatedParameters, BayesInfo, BoundsInfo, DynareResults, derivatives_info)
+        dsge_conditional_likelihood(xparam1, DynareDataset, DatasetInfo, DynareOptions, Model, EstimatedParameters, BayesInfo, BoundsInfo, DynareResults, derivatives_info)
+
+% Copyright (C) 2017-2018 Dynare Team
+%
+% This file is part of Dynare.
+%
+% Dynare is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+%
+% Dynare is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License
+% along with Dynare.  If not, see <http://www.gnu.org/licenses/>.
 
 
 % Initialization of the returned variables and others.
@@ -9,7 +26,7 @@ trend_coeff = [];
 exit_flag   = 1;
 info        = zeros(4,1);
 DLIK        = [];
-Hess       = [];
+Hess        = [];
 
 
 % Exit with error if analytical_derivation option is used.
@@ -171,7 +188,7 @@ S = zeros(mm, 1);
 
 Rtild = inv(R(Z,:));
 const = -.5*rr*log(2*pi);
-const = const + log(abs(det(Rtild))) + sum(log(diag(iQ_upper_chol))); 
+const = const + log(abs(det(Rtild))) + sum(log(diag(iQ_upper_chol)));
 
 llik = zeros(size(Y, 2));
 
