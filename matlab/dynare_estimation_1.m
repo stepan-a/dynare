@@ -106,7 +106,7 @@ if ~options_.dsge_var
             error(['Estimation: Unknown filter ' options_.particle.filter_algorithm])
         end
     elseif options_.conditional_likelihood
-        objective_function = str2func('dsge_conditional_likelihood');
+        objective_function = str2func('dsge_conditional_likelihood_1');
     else
         objective_function = str2func('dsge_likelihood');
     end
