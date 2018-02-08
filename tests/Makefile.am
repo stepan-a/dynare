@@ -44,6 +44,8 @@ MODFILES = \
 	estimation/conditional-likelihood/1/fs2000_simulation.mod \
 	estimation/conditional-likelihood/1/fs2000_estimation_exact.mod \
 	estimation/conditional-likelihood/1/fs2000_estimation_conditional.mod \
+	estimation/conditional-likelihood/2/fs2000_simulation.mod \
+	estimation/conditional-likelihood/2/fs2000_estimation_conditional.mod \
 	moments/example1_var_decomp.mod \
 	moments/example1_bp_test.mod \
 	moments/test_AR1_spectral_density.mod \
@@ -427,6 +429,9 @@ estimation/conditional-likelihood/1/fs2000_estimation_exact.o.trs: estimation/co
 
 estimation/conditional-likelihood/1/fs2000_estimation_conditional.m.trs: estimation/conditional-likelihood/1/fs2000_estimation_exact.m.trs
 estimation/conditional-likelihood/1/fs2000_estimation_conditional.o.trs: estimation/conditional-likelihood/1/fs2000_estimation_exact.o.trs
+
+estimation/conditional-likelihood/2/fs2000_estimation_conditional.m.trs: estimation/conditional-likelihood/2/fs2000_simulation.m.trs
+estimation/conditional-likelihood/2/fs2000_estimation_conditional.o.trs: estimation/conditional-likelihood/2/fs2000_simulation.o.trs
 
 optimizers/fs2000_102.m.trs: estimation/fs2000.m.trs
 optimizers/fs2000_102.o.trs: estimation/fs2000.o.trs
