@@ -41,6 +41,9 @@ else
     reset_options_related_to_estimation = false;
 end
 
+if options_.particle.status && options_.conditional_likelihood
+    options_.particle.status = false;
+end
 
 %store qz_criterium
 qz_criterium_old=options_.qz_criterium;
@@ -80,8 +83,10 @@ if options_.order > 1
         end
     elseif options_.particle.status && options_.order>2
         error(['Non linear filter are not implemented with order ' int2str(options_.order) ' approximation of the model!'])
-    elseif ~options_.particle.status && options_.order==2
-        error('For estimating the model with a second order approximation using a non linear filter, one should have options_.particle.status=1;')
+    elseif ~options_.particle.status && options_.conditional_likelihood
+        skipline()
+        disp('Estimation using conditional likelihood!')
+        skipline()
     else
         error(['Cannot estimate a model with an order ' int2str(options_.order) ' approximation!'])
     end
@@ -106,7 +111,14 @@ if ~options_.dsge_var
             error(['Estimation: Unknown filter ' options_.particle.filter_algorithm])
         end
     elseif options_.conditional_likelihood
-        objective_function = str2func('dsge_conditional_likelihood_1');
+        switch options_.order
+          case 1
+            objective_function = str2func('dsge_conditional_likelihood_1');
+          case 2
+            objective_function = str2func('dsge_conditional_likelihood_2');
+          otherwise
+            error('Conditional likelihood not implemented with order>2!')
+        end
     else
         objective_function = str2func('dsge_likelihood');
     end
