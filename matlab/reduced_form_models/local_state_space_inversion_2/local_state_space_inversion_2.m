@@ -56,7 +56,7 @@ if ~isequal(rows(ghxx), q) || ~isequal(columns(ghxx), n*n)
     error('Inconsitent dimensions between y, yhat and ghxx')
 end
 
-if ~isequal(rows(ghuu), q) || ~isequal(columns(ghxx), q*q)
+if ~isequal(rows(ghuu), q) || ~isequal(columns(ghuu), q*q)
     error('Inconsitent dimensions between y, and ghuu')
 end
 
@@ -77,12 +77,12 @@ for t = 1:s
         f = y(:,t) - constant - ghx*yhat(:,t) - ghu*epsilon0 ...
             - A_times_B_kronecker_C(.5*ghxx, yhat(:,t), numthread)  ...
             - A_times_B_kronecker_C(.5*ghuu, epsilon0, numthread) ...
-            - A_times_B_kronecker_C(ghxu, yhat(:,t), epsilon0, number_of_threads);
+            - A_times_B_kronecker_C(ghxu, yhat(:,t), epsilon0, numthread);
         if f'*f<1e-5
             epsilon(:,t) = epsilon0;
             break
         end
-        df = -(ghu + .5*ghuu*(kron(eye(q), epsilon0)+kron(epsilon0, eye(q))) + ghxu*kron(yhat(:,t), eye(q));
+        df = -(ghu + .5*ghuu*(kron(eye(q), epsilon0)+kron(epsilon0, eye(q))) + ghxu*kron(yhat(:,t), eye(q)));
         epsilon1 = epsilon0 - df\f;
         if (epsilon1-epsilon0)'*(epsilon1-epsilon0)<1e-5
             epsilon(:,t) = epsilon1;
