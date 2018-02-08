@@ -80,4 +80,4 @@ varobs gp_obs gy_obs;
 
 options_.solve_tolf = 1e-12;
 
-estimation(conditional_likelihood,order=2,datafile=fsdat_simul,nobs=192,mode_compute=4,mode_check,loglinear,mh_replic=0,mh_nblocks=2,mh_jscale=0.8);
+estimation(conditional_likelihood,order=2,datafile=fsdat_simul,nobs=192,mode_compute=4,mode_check,mh_replic=0,mh_nblocks=2,mh_jscale=0.8);
