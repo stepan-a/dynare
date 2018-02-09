@@ -186,7 +186,10 @@ S = zeros(length(mf0), 1);
 
 %  
 for t = 1:columns(Y)
-    epsilon = local_state_space_inversion_2(Y(:,t), S, ghx, ghu, constant, ghxx, ghuu, ghxu, DynareOptions.threads);
+    [epsilon, exitflag] = local_state_space_inversion_2(Y(:,t), S, ghx, ghu, constant, ghxx, ghuu, ghxu, DynareOptions.threads);
+    if exitflag
+        error('Newton did not converge in period %s!', int2str(t));
+    end
     upsilon = iQ_upper_chol*epsilon;
     S = local_state_space_iteration_2(S, epsilon(:,t), ghx_, ghu_, constant_, ghxx_, ghuu_, ghxu_, DynareOptions.threads);
     llik(t) = const - .5*(upsilon'*upsilon);

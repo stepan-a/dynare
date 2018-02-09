@@ -1,4 +1,4 @@
-function epsilon = local_state_space_inversion_2(y, yhat, ghx, ghu, constant, ghxx, ghuu, ghxu, numthread)
+function [epsilon, exitflag] = local_state_space_inversion_2(y, yhat, ghx, ghu, constant, ghxx, ghuu, ghxu, numthread)
 
 % Given the states (y) and structural innovations (epsilon), this routine computes the level of selected endogenous variables when the
 % model is approximated by an order two taylor expansion around the deterministic steady state. Depending on the number of input/output
@@ -42,7 +42,6 @@ function epsilon = local_state_space_inversion_2(y, yhat, ghx, ghu, constant, gh
 
 q = rows(y);
 n = rows(yhat);
-s = columns(yhat);
 
 if ~isequal(rows(ghx), q) || ~isequal(columns(ghx), n)
     error('Inconsitent dimensions between y, yhat and ghx')
@@ -64,33 +63,30 @@ if ~isequal(rows(ghxu), q) || ~isequal(columns(ghxu), n*q)
     error('Inconsitent dimensions between y, yhat and ghxu')
 end
 
-if ~isequal(columns(y), s)
-    error('y and yhat must have the same number of columns!')
+exitflag = 0;
+
+epsilon  = zeros(q, 1);
+epsilon0 = eguess(ghx, ghu, ghxx, constant, numthread, y, yhat);
+
+iteration = 1;
+
+while iteration<=100
+    f0 = rf2r(ghx, ghu, ghxx, ghuu, ghxu, constant, numthread, y, yhat, epsilon0);
+    if f0'*f0<1e-5
+        epsilon = epsilon0;
+        break
+    end
+    df0 = rf2J(ghu, ghuu, ghxu, yhat, epsilon0);
+    epsilon1 = epsilon0 - df0\f0;
+    f1 = rf2r(ghx, ghu, ghxx, ghuu, ghxu, constant, numthread, y, yhat, epsilon1);
+    if (epsilon1-epsilon0)'*(epsilon1-epsilon0)<1e-5
+        epsilon = epsilon1;
+        break
+    end
+    epsilon0 = epsilon1;
+    iteration = iteration+1;
 end
 
-epsilon = zeros(q, s);
-
-for t = 1:s    
-    epsilon0 = ghu\(y(:,t) - constant - ghx*yhat(:,t) - A_times_B_kronecker_C(.5*ghxx,yhat(:,t), numthread));
-    iteration = 1;
-    while iteration<=100
-        f = y(:,t) - constant - ghx*yhat(:,t) - ghu*epsilon0 ...
-            - A_times_B_kronecker_C(.5*ghxx, yhat(:,t), numthread)  ...
-            - A_times_B_kronecker_C(.5*ghuu, epsilon0, numthread) ...
-            - A_times_B_kronecker_C(ghxu, yhat(:,t), epsilon0, numthread);
-        if f'*f<1e-5
-            epsilon(:,t) = epsilon0;
-            break
-        end
-        df = -(ghu + .5*ghuu*(kron(eye(q), epsilon0)+kron(epsilon0, eye(q))) + ghxu*kron(yhat(:,t), eye(q)));
-        epsilon1 = epsilon0 - df\f;
-        if (epsilon1-epsilon0)'*(epsilon1-epsilon0)<1e-5
-            epsilon(:,t) = epsilon1;
-            break
-        end
-        iteration = iteration+1;
-    end
-    if ~all(epsilon(:,t))
-        error('Newton did not converge in period %s', num2str(t))
-    end
+if ~all(epsilon)
+    exitflag = 1;
 end
