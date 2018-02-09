@@ -1,0 +1,10 @@
+#!/bin/sh
+
+rm -rf fs2000_simulation
+rm -f fs2000_simulation_dynamic.m
+rm -f fs2000_simulation.log
+rm -f fs2000_simulation_set_auxiliary_variables.m
+rm -f fs2000_simulation_static.m
+rm -f fs2000_simulation_steadystate2.m
+rm -f fs2000_simulation.m
+rm -f fs2000_simulation_results.mat
